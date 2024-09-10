@@ -1,6 +1,11 @@
-# `vscode run ts`
+# vscode run ts
 
 这是一个 Visual Studio Code 插件，在当前 TypeScript 文件上下文中快速运行表达式。
+
+## 链接
+
+- [github仓库](https://github.com/lsby/vscode-run-ts)
+- [vscode商店](https://marketplace.visualstudio.com/items?itemName=hbybyyang.lsby-vscode-run-ts)
 
 ## 注意
 
