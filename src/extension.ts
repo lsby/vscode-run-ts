@@ -2,6 +2,8 @@ import * as vscode from 'vscode'
 
 const 插件名称 = 'lsby-vscode-run-ts'
 const 历史记录限制 = 10 // 设置历史记录的最大数量
+const 注释前缀 = '// LSBY-VSCODE-RUN-TS-DEBUG-START'
+const 注释后缀 = '// LSBY-VSCODE-RUN-TS-DEBUG-END'
 
 export function activate(context: vscode.ExtensionContext): void {
   console.log(`${插件名称}: 插件开始运行`)
@@ -14,7 +16,6 @@ export function deactivate(): void {}
 class TypeScriptRunner {
   private 上下文: vscode.ExtensionContext
   private 历史记录: string[] = []
-  private 原始文本: string = ''
 
   constructor(上下文: vscode.ExtensionContext) {
     this.上下文 = 上下文
@@ -49,9 +50,9 @@ class TypeScriptRunner {
     }
 
     this.添加到历史记录(表达式)
-    await this.添加并保存表达式(文档, 表达式)
+    await this.添加表达式并保存(文档, 表达式)
     await this.启动调试会话(文档.uri.fsPath)
-    await this.恢复文件内容并保存(文档)
+    await this.删除添加的部分(文档)
   }
 
   // 检查是否为 TypeScript 文件
@@ -119,20 +120,27 @@ class TypeScriptRunner {
   }
 
   // 将表达式添加到文件末尾并保存
-  private async 添加并保存表达式(文档: vscode.TextDocument, 表达式: string): Promise<void> {
-    this.原始文本 = 文档.getText()
-    const 新文本 = `${this.原始文本}\n\n${表达式}\n`
+  private async 添加表达式并保存(文档: vscode.TextDocument, 表达式: string): Promise<void> {
+    const 添加位置 = new vscode.Position(文档.lineCount, 0)
+    const 表达式内容 = `${注释前缀}\n${表达式}\n${注释后缀}`
+    const 新文本 = `\n${表达式内容}\n`
     const 编辑 = new vscode.WorkspaceEdit()
-    const 文件范围 = new vscode.Range(0, 0, 文档.lineCount, 文档.lineAt(文档.lineCount - 1).range.end.character)
-    编辑.replace(文档.uri, 文件范围, 新文本)
+    编辑.replace(文档.uri, new vscode.Range(添加位置, 添加位置), 新文本)
     await vscode.workspace.applyEdit(编辑)
   }
 
-  // 恢复文件内容并保存
-  private async 恢复文件内容并保存(文档: vscode.TextDocument): Promise<void> {
+  // 删除添加的部分
+  private async 删除添加的部分(文档: vscode.TextDocument): Promise<void> {
+    const 文档文本 = 文档.getText()
+    const startIndex = 文档文本.indexOf(注释前缀)
+    const endIndex = 文档文本.indexOf(注释后缀, startIndex) + 注释后缀.length
+
+    if (startIndex === -1 || endIndex === -1) {
+      return
+    }
+
     const 编辑 = new vscode.WorkspaceEdit()
-    const 文件范围 = new vscode.Range(0, 0, 文档.lineCount, 文档.lineAt(文档.lineCount - 1).range.end.character)
-    编辑.replace(文档.uri, 文件范围, this.原始文本)
+    编辑.delete(文档.uri, new vscode.Range(文档.positionAt(startIndex), 文档.positionAt(endIndex)))
     await vscode.workspace.applyEdit(编辑)
     await vscode.commands.executeCommand('workbench.action.files.save')
   }
