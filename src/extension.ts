@@ -61,7 +61,7 @@ class TypeScriptRunner {
 
   // 获取用户输入的表达式
   private async 获取表达式(): Promise<string | undefined> {
-    const 选择的表达式 = await vscode.window.showQuickPick(this.历史记录.reverse(), {
+    const 选择的表达式 = await vscode.window.showQuickPick(this.历史记录, {
       placeHolder: '选择一个历史记录, 或按ESC输入新的表达式',
       canPickMany: false,
       matchOnDescription: true,
@@ -106,11 +106,15 @@ class TypeScriptRunner {
 
   // 将新的表达式添加到历史记录中
   private 添加到历史记录(表达式: string): void {
-    if (!this.历史记录.includes(表达式)) {
-      this.历史记录.push(表达式)
-      if (this.历史记录.length > 历史记录限制) {
-        this.历史记录.shift() // 保持历史记录的最大数量
-      }
+    // 如果历史记录中已存在该表达式，先移除
+    const index = this.历史记录.indexOf(表达式)
+    if (index !== -1) {
+      this.历史记录.splice(index, 1) // 移除已有表达式
+    }
+    // 将新表达式插入到最前面
+    this.历史记录.unshift(表达式)
+    if (this.历史记录.length > 历史记录限制) {
+      this.历史记录.pop() // 超过限制时移除最后一个
     }
   }
 
