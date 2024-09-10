@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 
-var 插件名称 = 'playground-vscode-plugin'
+var 插件名称 = 'lsby-vscode-run-ts'
 
 export function activate(context: vscode.ExtensionContext): void {
   console.log(`${插件名称}: 插件开始运行`)

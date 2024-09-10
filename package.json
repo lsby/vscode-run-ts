@@ -1,6 +1,6 @@
 {
-  "name": "playground-vscode-plugin",
-  "displayName": "playground-vscode-plugin",
+  "name": "@lsby/vscode-run-ts",
+  "displayName": "vscode run ts",
   "version": "0.0.0",
   "description": "",
   "categories": [
@@ -34,8 +34,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "playground-vscode-plugin.helloWorld",
-        "title": "playground-vscode-plugin: Hello World"
+        "command": "lsby-vscode-run-ts.helloWorld",
+        "title": "lsby-vscode-run-ts: Hello World"
       }
     ]
   },
