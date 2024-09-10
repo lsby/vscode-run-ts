@@ -34,8 +34,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "lsby-vscode-run-ts.helloWorld",
-        "title": "lsby-vscode-run-ts: Hello World"
+        "command": "lsby-vscode-run-ts.runInCurrentFile",
+        "title": "在当前文件运行"
       }
     ]
   },
