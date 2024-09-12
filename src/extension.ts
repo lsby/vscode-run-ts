@@ -1,8 +1,12 @@
+import * as fs from 'fs'
+import * as path from 'path'
 import ts from 'typescript'
 import * as vscode from 'vscode'
 import { TypeScriptASTHelper } from './ast'
+import { 配置文件模式, 配置文件类型 } from './types'
 
 const 插件名称 = 'lsby-vscode-run-ts'
+const 配置文件名 = 'lsby-vscode-run-ts-config.json'
 const 历史记录限制 = 10
 const 注释前缀 = '// LSBY-VSCODE-RUN-TS-DEBUG-START'
 const 注释后缀 = '// LSBY-VSCODE-RUN-TS-DEBUG-END'
@@ -21,6 +25,25 @@ class TypeScriptRunner {
 
   constructor(上下文: vscode.ExtensionContext) {
     this.上下文 = 上下文
+  }
+
+  private async 读取项目配置(): Promise<配置文件类型 | undefined> {
+    const workspaceFolders = vscode.workspace.workspaceFolders?.[0]
+    if (!workspaceFolders) {
+      return undefined
+    }
+
+    const workspaceRoot = workspaceFolders.uri.fsPath
+    const configPath = path.join(workspaceRoot, '.vscode', 配置文件名)
+
+    if (fs.existsSync(configPath)) {
+      const configFile = fs.readFileSync(configPath, 'utf8')
+      const result = 配置文件模式.safeParse(JSON.parse(configFile))
+      if (!result.success) return undefined
+      return result.data
+    }
+
+    return undefined
   }
 
   public 注册命令(): void {
@@ -97,6 +120,9 @@ class TypeScriptRunner {
 
   private async 启动调试会话(文件路径: string): Promise<void> {
     return new Promise(async (res, _rej) => {
+      var 配置 = await this.读取项目配置()
+      const envVars = 配置?.env || {}
+
       const 调试配置: vscode.DebugConfiguration = {
         type: 'node',
         request: 'launch',
@@ -106,6 +132,7 @@ class TypeScriptRunner {
         runtimeArgs: ['tsx'],
         console: 'integratedTerminal',
         internalConsoleOptions: 'neverOpen',
+        env: envVars,
       }
 
       const 调试会话 = await vscode.debug.startDebugging(vscode.workspace.workspaceFolders![0], 调试配置)
