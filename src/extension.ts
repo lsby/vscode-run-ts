@@ -106,13 +106,17 @@ class TypeScriptRunner {
   }
 
   private async 生成或获取表达式(文档: vscode.TextDocument, 光标位置: vscode.Position): Promise<string | undefined> {
-    const 选择项: vscode.QuickPickItem[] = this.历史记录.map((a) => {
-      return { label: a }
-    })
     var 新表达式提示 = '<输入新的表达式>'
     var 直接执行提示 = '<直接执行>'
+    var 直接执行内容 = '// 直接执行'
+
+    const 选择项: vscode.QuickPickItem[] = this.历史记录
+      .filter((a) => a != 直接执行内容)
+      .map((a) => {
+        return { label: a }
+      })
     选择项.push(
-      ...[{ label: '', kind: vscode.QuickPickItemKind.Separator }, { label: 新表达式提示 }, { label: 直接执行提示 }],
+      ...[{ label: '', kind: vscode.QuickPickItemKind.Separator }, { label: 直接执行提示 }, { label: 新表达式提示 }],
     )
 
     var 选择的表达式 = await this.显示选择框(选择项, '选择或输入要执行的表达式, 按ESC进入输入模式.')
@@ -122,7 +126,7 @@ class TypeScriptRunner {
     }
 
     if (选择的表达式 && 选择的表达式.label == 直接执行提示) {
-      return '// 直接执行'
+      return 直接执行内容
     }
 
     const 源代码 = 文档.getText()
