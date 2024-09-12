@@ -1,5 +1,6 @@
 import ts from 'typescript'
 import * as vscode from 'vscode'
+import { TypeScriptASTHelper } from './ast'
 
 const 插件名称 = 'lsby-vscode-run-ts'
 const 历史记录限制 = 10
@@ -72,18 +73,19 @@ class TypeScriptRunner {
 
     const 源代码 = 文档.getText()
     const 源文件 = ts.createSourceFile(文档.fileName, 源代码, ts.ScriptTarget.Latest, true)
+    const ast处理器 = new TypeScriptASTHelper(源文件)
 
-    const 顶级函数 = this.查找顶级函数(源文件)
-    const 顶级类 = this.查找顶级类(源文件)
-    const 类中的静态方法 = this.查找类中的静态方法(顶级类)
-    const 类中的实例方法 = this.查找类中的实例方法(顶级类)
+    const 顶级函数 = ast处理器.查找顶级函数()
+    const 顶级类 = ast处理器.查找顶级类()
+    const 类中的静态方法 = ast处理器.查找类中的静态方法(顶级类)
+    const 类中的实例方法 = ast处理器.查找类中的实例方法(顶级类)
 
     const 光标偏移 = 文档.offsetAt(光标位置)
-    const 节点 = this.查找光标位置的节点(光标偏移, 顶级函数, 类中的静态方法, 类中的实例方法)
+    const 节点 = ast处理器.查找光标位置的节点(光标偏移, 顶级函数, 类中的静态方法, 类中的实例方法)
 
     var 生成的表达式: string | undefined
     if (节点) {
-      生成的表达式 = this.根据节点生成表达式(节点)
+      生成的表达式 = ast处理器.根据节点生成表达式(节点)
     }
 
     return await vscode.window.showInputBox({
@@ -91,98 +93,6 @@ class TypeScriptRunner {
       placeHolder: '例如 console.log("Hello World")',
       value: 生成的表达式 || '',
     })
-  }
-
-  private 查找顶级函数(源文件: ts.SourceFile): ts.FunctionDeclaration[] {
-    const 顶级函数: ts.FunctionDeclaration[] = []
-    const 查找器 = (node: ts.Node): void => {
-      if (ts.isFunctionDeclaration(node)) {
-        顶级函数.push(node)
-      }
-      ts.forEachChild(node, 查找器)
-    }
-    ts.forEachChild(源文件, 查找器)
-    return 顶级函数
-  }
-
-  private 查找顶级类(源文件: ts.SourceFile): ts.ClassDeclaration[] {
-    const 顶级类: ts.ClassDeclaration[] = []
-    const 查找器 = (node: ts.Node): void => {
-      if (ts.isClassDeclaration(node)) {
-        顶级类.push(node)
-      }
-      ts.forEachChild(node, 查找器)
-    }
-    ts.forEachChild(源文件, 查找器)
-    return 顶级类
-  }
-
-  private 查找类中的静态方法(顶级类: ts.ClassDeclaration[]): ts.MethodDeclaration[] {
-    const 静态方法: ts.MethodDeclaration[] = []
-    顶级类.forEach((类) => {
-      ts.forEachChild(类, (node) => {
-        if (ts.isMethodDeclaration(node) && node.modifiers?.some((mod) => mod.kind === ts.SyntaxKind.StaticKeyword)) {
-          静态方法.push(node)
-        }
-      })
-    })
-    return 静态方法
-  }
-
-  private 查找类中的实例方法(顶级类: ts.ClassDeclaration[]): ts.MethodDeclaration[] {
-    const 实例方法: ts.MethodDeclaration[] = []
-    顶级类.forEach((类) => {
-      ts.forEachChild(类, (node) => {
-        if (ts.isMethodDeclaration(node) && !node.modifiers?.some((mod) => mod.kind === ts.SyntaxKind.StaticKeyword)) {
-          实例方法.push(node)
-        }
-      })
-    })
-    return 实例方法
-  }
-
-  private 查找光标位置的节点(
-    光标偏移: number,
-    顶级函数: ts.FunctionDeclaration[],
-    静态方法: ts.MethodDeclaration[],
-    实例方法: ts.MethodDeclaration[],
-  ): ts.Node | undefined {
-    const 节点在范围内 = (节点: ts.Node): boolean => {
-      const 开始位置 = 节点.getStart()
-      const 结束位置 = 节点.getEnd()
-      return 光标偏移 >= 开始位置 && 光标偏移 <= 结束位置
-    }
-
-    for (const 函数 of 顶级函数) {
-      if (节点在范围内(函数)) return 函数
-    }
-
-    for (const 方法 of 静态方法) {
-      if (节点在范围内(方法)) return 方法
-    }
-
-    for (const 方法 of 实例方法) {
-      if (节点在范围内(方法)) return 方法
-    }
-
-    return undefined
-  }
-
-  private 根据节点生成表达式(节点: ts.Node): string | undefined {
-    if (ts.isFunctionDeclaration(节点) && 节点.name) {
-      return `${节点.name.getText()}()`
-    } else if (ts.isMethodDeclaration(节点) && ts.isIdentifier(节点.name)) {
-      const 类声明 = 节点.parent as ts.ClassDeclaration
-      if (ts.isClassDeclaration(类声明) && 类声明.name) {
-        const 类名 = 类声明.name.getText()
-        if (节点.modifiers?.some((mod) => mod.kind === ts.SyntaxKind.StaticKeyword)) {
-          return `${类名}.${节点.name.getText()}()`
-        } else {
-          return `new ${类名}().${节点.name.getText()}()`
-        }
-      }
-    }
-    return undefined
   }
 
   private async 启动调试会话(文件路径: string): Promise<void> {
