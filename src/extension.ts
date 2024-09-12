@@ -145,21 +145,25 @@ class TypeScriptRunner {
   private async 启动调试会话(文件路径: string): Promise<void> {
     return new Promise(async (res, _rej) => {
       var 配置 = await this.读取项目配置()
-      const envVars = 配置?.env || {}
+      const env = 配置?.env || {}
+      const runtimeExecutable = 配置?.runtimeExecutable || 'npx'
+      const runtimeArgs = 配置?.runtimeArgs || ['tsx']
 
       const 调试配置: vscode.DebugConfiguration = {
         type: 'node',
         request: 'launch',
         name: 'Debug TypeScript File',
         program: 文件路径,
-        runtimeExecutable: 'npx',
-        runtimeArgs: ['tsx'],
+        runtimeExecutable: runtimeExecutable,
+        runtimeArgs: runtimeArgs,
         console: 'integratedTerminal',
         internalConsoleOptions: 'neverOpen',
-        env: envVars,
+        env: env,
       }
 
-      const 调试会话 = await vscode.debug.startDebugging(vscode.workspace.workspaceFolders![0], 调试配置)
+      var 工作区 = vscode.workspace.workspaceFolders?.[0]
+      if (!工作区) throw new Error('工作区不存在')
+      const 调试会话 = await vscode.debug.startDebugging(工作区, 调试配置)
 
       if (调试会话) {
         const 结束监听器 = vscode.debug.onDidTerminateDebugSession(async () => {
