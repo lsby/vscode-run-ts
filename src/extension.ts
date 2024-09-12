@@ -110,14 +110,13 @@ class TypeScriptRunner {
     var 直接执行提示 = '<直接执行>'
     var 直接执行内容 = '// 直接执行'
 
-    const 选择项: vscode.QuickPickItem[] = this.历史记录
-      .filter((a) => a != 直接执行内容)
-      .map((a) => {
-        return { label: a }
-      })
-    选择项.push(
-      ...[{ label: '', kind: vscode.QuickPickItemKind.Separator }, { label: 直接执行提示 }, { label: 新表达式提示 }],
-    )
+    const 选择项: vscode.QuickPickItem[] = this.历史记录.map((a) => {
+      return { label: a == 直接执行内容 ? 直接执行提示 : a }
+    })
+    if (选择项.find((a) => a.label == 直接执行提示) == null) {
+      选择项.push({ label: 直接执行提示 })
+    }
+    选择项.push(...[{ label: '', kind: vscode.QuickPickItemKind.Separator }, { label: 新表达式提示 }])
 
     var 选择的表达式 = await this.显示选择框(选择项, '选择或输入要执行的表达式, 按ESC进入输入模式.')
 
