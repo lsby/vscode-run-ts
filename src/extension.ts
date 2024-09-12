@@ -110,12 +110,19 @@ class TypeScriptRunner {
       return { label: a }
     })
     var 新表达式提示 = '<输入新的表达式>'
-    选择项.push(...[{ label: '', kind: vscode.QuickPickItemKind.Separator }, { label: 新表达式提示 }])
+    var 直接执行提示 = '<直接执行>'
+    选择项.push(
+      ...[{ label: '', kind: vscode.QuickPickItemKind.Separator }, { label: 新表达式提示 }, { label: 直接执行提示 }],
+    )
 
     var 选择的表达式 = await this.显示选择框(选择项, '选择或输入要执行的表达式, 按ESC进入输入模式.')
 
-    if (选择的表达式 && 选择的表达式.label != 新表达式提示) {
+    if (选择的表达式 && 选择的表达式.label != 新表达式提示 && 选择的表达式.label != 直接执行提示) {
       return 选择的表达式.label
+    }
+
+    if (选择的表达式 && 选择的表达式.label == 直接执行提示) {
+      return '// 直接执行'
     }
 
     const 源代码 = 文档.getText()
