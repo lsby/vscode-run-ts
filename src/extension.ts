@@ -83,15 +83,39 @@ class TypeScriptRunner {
     return 文档.languageId === 'typescript' || 文档.languageId === 'typescriptreact'
   }
 
-  private async 生成或获取表达式(文档: vscode.TextDocument, 光标位置: vscode.Position): Promise<string | undefined> {
-    const 选择的表达式 = await vscode.window.showQuickPick(this.历史记录, {
-      placeHolder: '选择一个历史记录, 或按ESC输入新的表达式',
-      canPickMany: false,
-      matchOnDescription: true,
-    })
+  private async 显示选择框(选项: vscode.QuickPickItem[], 提示文本: string): Promise<vscode.QuickPickItem | undefined> {
+    return new Promise((resolve, _reject) => {
+      const 选择框 = vscode.window.createQuickPick()
 
-    if (选择的表达式) {
-      return 选择的表达式
+      选择框.items = 选项
+      选择框.placeholder = 提示文本
+
+      选择框.onDidAccept(() => {
+        const 选择项 = 选择框.selectedItems[0]
+        resolve(选择项 || { label: 选择框.value })
+        选择框.hide()
+      })
+
+      选择框.onDidHide(() => {
+        resolve(undefined)
+        选择框.dispose()
+      })
+
+      选择框.show()
+    })
+  }
+
+  private async 生成或获取表达式(文档: vscode.TextDocument, 光标位置: vscode.Position): Promise<string | undefined> {
+    const 选择项: vscode.QuickPickItem[] = this.历史记录.map((a) => {
+      return { label: a }
+    })
+    var 新表达式提示 = '<输入新的表达式>'
+    选择项.push(...[{ label: '', kind: vscode.QuickPickItemKind.Separator }, { label: 新表达式提示 }])
+
+    var 选择的表达式 = await this.显示选择框(选择项, '选择或输入要执行的表达式, 按ESC进入输入模式.')
+
+    if (选择的表达式 && 选择的表达式.label != 新表达式提示) {
+      return 选择的表达式.label
     }
 
     const 源代码 = 文档.getText()
@@ -112,7 +136,7 @@ class TypeScriptRunner {
     }
 
     return await vscode.window.showInputBox({
-      prompt: '请输入要添加并运行的表达式, 可使用当前文件的上下文',
+      prompt: '请输入要运行的表达式, 可使用当前文件的上下文',
       placeHolder: '例如 console.log("Hello World")',
       value: 生成的表达式 || '',
     })
